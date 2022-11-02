@@ -27,10 +27,10 @@ void A1_Task1::defaultValues()
     defaultVectors(inputVec, inputVec2, this->workloadSize);
     //Fill buffers
     //std::cout << "Filling buffers..." << std::endl;
-    fillDeviceBuffer(app.device, inBuffer1.mem, inputVec);
-    fillDeviceBuffer(app.device, inBuffer2.mem, inputVec2);
-    // fillDeviceWithStagingBuffer(app.pDevice, app.device, app.transferCommandPool, app.transferQueue, inBuffer1, inputVec);
-    // fillDeviceWithStagingBuffer(app.pDevice, app.device, app.transferCommandPool, app.transferQueue, inBuffer2, inputVec2);
+    // fillDeviceBuffer(app.device, inBuffer1.mem, inputVec);
+    // fillDeviceBuffer(app.device, inBuffer2.mem, inputVec2);
+    fillDeviceWithStagingBuffer(app.pDevice, app.device, app.transferCommandPool, app.transferQueue, inBuffer1, inputVec);
+    fillDeviceWithStagingBuffer(app.pDevice, app.device, app.transferCommandPool, app.transferQueue, inBuffer2, inputVec2);
 }
 
 void A1_Task1::checkDefaultValues()
@@ -72,12 +72,11 @@ void A1_Task1::prepare(unsigned int size)
     //task.pipelineLayout = ...
 
     // ### create buffers ###
-    createBuffer(app.pDevice, app.device, workloadSize * sizeof(unsigned int), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageBuffer,
+    createBuffer(app.pDevice, app.device, workloadSize * sizeof(int), vk::BufferUsageFlagBits::eTransferDst  | vk::BufferUsageFlagBits::eStorageBuffer,
                  vk::MemoryPropertyFlagBits::eHostCoherent, "inBuffer1", this->inBuffer1.buf,  this->inBuffer1.mem);
-    createBuffer(app.pDevice, app.device, workloadSize* sizeof(unsigned int), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageBuffer,
+    createBuffer(app.pDevice, app.device, workloadSize* sizeof(int), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
                  vk::MemoryPropertyFlagBits::eHostCoherent, "inBuffer2", this->inBuffer2.buf,  this->inBuffer2.mem);
-
-    createBuffer(app.pDevice, app.device, workloadSize* sizeof(unsigned int), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageBuffer,
+    createBuffer(app.pDevice, app.device, workloadSize* sizeof(int), vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageBuffer,
                  vk::MemoryPropertyFlagBits::eHostCoherent, "outBuffer", this->outBuffer.buf,  this->outBuffer.mem);
 
     // ### Fills inBuffer1 and inBuffer2 ###
@@ -141,6 +140,7 @@ void A1_Task1::dispatchWork(uint32_t dx, uint32_t dy, uint32_t dz, PushStruct &p
     cb.pushConstants(task.pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushStruct), &pushConstant);
     cb.bindPipeline(vk::PipelineBindPoint::eCompute, task.pipeline);
     cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, task.pipelineLayout, 0U, 1U, &task.descriptorSet, 0U, nullptr);
+    cb.dispatch(dx, dy, dz);
     cb.writeTimestamp(vk::PipelineStageFlagBits::eAllCommands, app.queryPool, 1);
 
     /* ### End of Command Buffer, enqueue it and use a Fence ### */
