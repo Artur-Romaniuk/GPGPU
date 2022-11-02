@@ -29,8 +29,8 @@ void A1_Task1::defaultValues()
     //std::cout << "Filling buffers..." << std::endl;
     fillDeviceBuffer(app.device, inBuffer1.mem, inputVec);
     fillDeviceBuffer(app.device, inBuffer2.mem, inputVec2);
-    //fillDeviceWithStagingBuffer(app.pDevice, app.device, app.transferCommandPool, app.transferQueue, inBuffer1, inputVec);
-    //fillDeviceWithStagingBuffer(app.pDevice, app.device, app.transferCommandPool, app.transferQueue, inBuffer2, inputVec2);
+    // fillDeviceWithStagingBuffer(app.pDevice, app.device, app.transferCommandPool, app.transferQueue, inBuffer1, inputVec);
+    // fillDeviceWithStagingBuffer(app.pDevice, app.device, app.transferCommandPool, app.transferQueue, inBuffer2, inputVec2);
 }
 
 void A1_Task1::checkDefaultValues()
@@ -74,10 +74,10 @@ void A1_Task1::prepare(unsigned int size)
     // ### create buffers ###
     createBuffer(app.pDevice, app.device, workloadSize * sizeof(unsigned int), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageBuffer,
                  vk::MemoryPropertyFlagBits::eHostCoherent, "inBuffer1", this->inBuffer1.buf,  this->inBuffer1.mem);
-    createBuffer(app.pDevice, app.device, workloadSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageBuffer,
+    createBuffer(app.pDevice, app.device, workloadSize* sizeof(unsigned int), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageBuffer,
                  vk::MemoryPropertyFlagBits::eHostCoherent, "inBuffer2", this->inBuffer2.buf,  this->inBuffer2.mem);
 
-    createBuffer(app.pDevice, app.device, workloadSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eStorageBuffer,
+    createBuffer(app.pDevice, app.device, workloadSize* sizeof(unsigned int), vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eTransferSrc | vk::BufferUsageFlagBits::eStorageBuffer,
                  vk::MemoryPropertyFlagBits::eHostCoherent, "outBuffer", this->outBuffer.buf,  this->outBuffer.mem);
 
     // ### Fills inBuffer1 and inBuffer2 ###
@@ -105,7 +105,7 @@ void A1_Task1::compute(uint32_t dx, uint32_t dy, uint32_t dz, std::string file)
     uint32_t groupCount = (workloadSize+dx-1) / dx;
     PushStruct push{workloadSize}; 
     // ### Create ShaderModule ###
-    std::string compute = "./build/shaders/"+file+"comp.spv";
+    std::string compute = "../shaders/"+file+".comp.spv";
     app.device.destroyShaderModule(task.cShader);
     Cmn::createShader(app.device, task.cShader, compute);
 

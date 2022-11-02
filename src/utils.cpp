@@ -71,7 +71,6 @@ void createBuffer(vk::PhysicalDevice &pDevice, vk::Device &device,
     buffer = device.createBuffer(bufferInfo);
 
     vk::MemoryRequirements memReq = device.getBufferMemoryRequirements(buffer);
-
     vk::MemoryAllocateInfo allocInfo(memReq.size, findMemoryType(memReq.memoryTypeBits , properties , pDevice) ) ;
     bufferMemory = device.allocateMemory(allocInfo);
     device.bindBufferMemory(buffer , bufferMemory, 0U ) ;
