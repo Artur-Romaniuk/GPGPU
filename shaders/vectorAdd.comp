@@ -18,9 +18,9 @@ layout(push_constant) uniform PushStruct {
 } params;
 
 // Bind DescriptorSets buffers
-layout(binding = 0 ) buffer input1 {uint v1[];};
-layout(binding = 1 ) buffer input2 {uint v2[];};
-layout(binding = 2 ) buffer outputBuf {uint v3[];};
+layout(binding = 0 ) buffer inBuffer1 {uint v1[];};
+layout(binding = 1 ) buffer inBuffer2 {uint v2[];};
+layout(binding = 2 ) buffer outBuffer {uint v3[];};
 
 
 void main() {
