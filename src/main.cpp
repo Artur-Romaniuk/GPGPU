@@ -64,8 +64,8 @@ int main()
         run_A1_task1(task);
 
         
-        // A1_Task2 A1task2(app);
-        // run_A1_task2(A1task2);
+        A1_Task2 A1task2(app);
+        run_A1_task2(A1task2);
     
         renderdoc::endCapture();
 
