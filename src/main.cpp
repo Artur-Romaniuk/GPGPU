@@ -40,6 +40,10 @@ void run_A1_task2(A1_Task2 A1task2) {
 
     std::cout << "took: " << A1task2.mstime << " ms" << std::endl;
 
+    // reseting outBuffer before 2nd run
+    std::vector<int> inputVec(A1task2.workloadSize, 0U);
+    fillDeviceWithStagingBuffer(A1task2.app.pDevice, A1task2.app.device, A1task2.app.transferCommandPool, A1task2.app.transferQueue, A1task2.outBuffer, inputVec);
+
     A1task2.compute(32, 16, 1, "matrixRotOpti");
     A1task2.checkDefaultValues();
     std::cout << "took: " << A1task2.mstime << " ms" << std::endl;

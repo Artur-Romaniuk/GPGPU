@@ -33,5 +33,17 @@ void main() {
     //  local IDs
     uint lIDx = gl_LocalInvocationID.x;
     uint lIDy = gl_LocalInvocationID.y;
+    
+    uint rotLIDx = lSizeY - lIDy - 1;
+    uint rotLIDy = lIDx;
+    uint rotGIDx = p.h - gIDy - 1;
+    uint rotGIDy = gIDx;
  
+    if(!(gIDx >= p.w || gIDy >= p.h))
+    {
+        shared_ints[rotLIDy * lSizeY + rotLIDx] = v1[gIDy * p.w + gIDx];
+    }
+    
+    barrier();
+    v2[rotGIDy * p.h + rotGIDx] = shared_ints[rotLIDy * lSizeY + rotLIDx];
 } 

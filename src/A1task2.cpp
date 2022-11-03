@@ -49,11 +49,12 @@ void A1_Task2::checkDefaultValues()
               << "========================" << std::endl
               << std::endl;
     // ### CHECK RESULT IS VALID ###
+    // std::ofstream outFile("out.data");
     // for (unsigned int i = 0; i < workloadSize; i++)
     // {
     //     if (i % workloadSize_h == 0 && i != 0)
-    //         std::cout << std::endl;
-    //     std::cout << result[i] << " ";
+    //         outFile << "\n";
+    //     outFile << result[i] << " ";
     // }
 }
 
@@ -82,7 +83,7 @@ void A1_Task2::prepare(unsigned int size_w, unsigned int size_h)
     };
 
     this->inBuffer = makeDLocalBuffer(BFlag::eTransferDst | BFlag::eStorageBuffer, workloadSize * sizeof(unsigned int), "buffer_in");
-    this->outBuffer = makeDLocalBuffer(BFlag::eTransferSrc | BFlag::eStorageBuffer, workloadSize * sizeof(unsigned int), "buffer_out");
+    this->outBuffer = makeDLocalBuffer(BFlag::eTransferDst | BFlag::eTransferSrc | BFlag::eStorageBuffer, workloadSize * sizeof(unsigned int), "buffer_out");
     /*
     Todo : create descriptorsetlayout pool set...
     */
