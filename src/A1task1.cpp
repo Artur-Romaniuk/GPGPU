@@ -45,9 +45,7 @@ void A1_Task1::checkDefaultValues()
     std::vector<int> outputVec(this->workloadSize, 0u);
     std::transform(inputVec.begin(), inputVec.end(), inputVec2.begin(), outputVec.begin(), std::plus<int>());
 
-    if (std::equal(result.begin(), result.end(), outputVec.begin()))
-        std::cout << "A1_Task1, TEST PASSED with size:" << this->workloadSize<< std::endl;
-    else
+    if (!(std::equal(result.begin(), result.end(), outputVec.begin())))
         std::cout << " Oh no! We found errors! Good luck :)" << std::endl;
 }
 

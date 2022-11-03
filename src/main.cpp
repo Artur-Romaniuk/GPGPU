@@ -14,42 +14,63 @@
 
 
 
-void run_A1_task1(A1_Task1 task) {
+void run_A1_task1(AppResources app) {
     CSVWriter csv;
-    csv.newRow() << "dx" << "dy" << "dz" << "vecsize" << "timing";
-    task.prepare(1024 * 1024 + 31);
+    csv.newRow() << "work-group size" << "vector size" << "timing";
+    const std::vector<uint32_t> vecSizes{512*512, 1024*1024, 2048*2048, 2048*2048 + 31};
+    for(const uint32_t vecsize : vecSizes){
+        A1_Task1 task(app);
+        task.prepare(vecsize);
 
-    for(int i= 32; i<1024;i=i<<1)
-    {
-        task.compute(i, 1, 1);
-        task.checkDefaultValues();
-        csv.newRow() << i << 1 << 1 << 1024 * 1024 << task.mstime;
+        for(int i= 32; i<512;i=i<<1)
+        {
+            uint64_t avgTime{};
+            static constexpr uint8_t numberOfAverageRuns = 10U;
+            for(uint8_t index = 0; index<numberOfAverageRuns; index++){
+                task.compute(i, 1, 1);
+                task.checkDefaultValues();
+                avgTime+=task.mstime * 10000;
+            }
+
+            csv.newRow() << i << vecsize << avgTime / 10000.f/ static_cast<float>(numberOfAverageRuns);
+        }
+        task.cleanup();
     }
-    
-    task.cleanup();
+
     std::cout << csv << std::endl;
     csv.writeToFile("vectorAddition.csv", false);
-
 }
 
-void run_A1_task2(A1_Task2 A1task2) {
-    A1task2.prepare(3200, 4000);
+void run_A1_task2(AppResources app, bool optimal = false) {
+    CSVWriter csv;
+    csv.newRow() << "work-group size" << "vector size" << "timing";
+    std::vector<std::pair<uint32_t, uint32_t>> matrixSizes{{3200, 4000},{1000, 1333}};
+    for(auto matrixSize : matrixSizes){
+        A1_Task2 task(app);
+        task.prepare(matrixSize.first, matrixSize.second);
 
-    A1task2.compute(32, 16, 1);
-    A1task2.checkDefaultValues();
+        std::vector<std::pair<uint32_t, uint32_t>> workGroupSizes{{8,8},{16,8},{32,16}};
+        for(auto workGroupSize : workGroupSizes)
+        {
+            uint64_t avgTime{};
+            static constexpr uint8_t numberOfAverageRuns = 10U;
+            for(uint8_t index = 0; index<numberOfAverageRuns; index++){
+                task.compute(workGroupSize.first, workGroupSize.second, 1, (optimal?"matrixRotOpti":"matrixRotNaive"));
+                task.checkDefaultValues();
+                avgTime+=task.mstime*100000;
+            }
+            csv.newRow() << workGroupSize.first * workGroupSize.second << matrixSize.first * matrixSize.second << avgTime/ 100000.f/ static_cast<float>(numberOfAverageRuns);
+        }
+        task.cleanup();
+    }
 
-    std::cout << "took: " << A1task2.mstime << " ms" << std::endl;
-
-    // reseting outBuffer before 2nd run
-    std::vector<int> inputVec(A1task2.workloadSize, 0U);
-    fillDeviceWithStagingBuffer(A1task2.app.pDevice, A1task2.app.device, A1task2.app.transferCommandPool, A1task2.app.transferQueue, A1task2.outBuffer, inputVec);
-
-    A1task2.compute(32, 16, 1, "matrixRotOpti");
-    A1task2.checkDefaultValues();
-    std::cout << "took: " << A1task2.mstime << " ms" << std::endl;
-
-    A1task2.cleanup();
+    std::cout << csv << std::endl;
+    std::string fileName = "vectorRotate";
+    fileName+= (optimal?"Opt":"Naive");
+    fileName+=".csv";
+    csv.writeToFile(fileName, false);
 }
+
 int main()
 {
     try
@@ -62,14 +83,13 @@ int main()
 
         renderdoc::initialize();
         renderdoc::startCapture();
-        
-        A1_Task1 task(app);
-        
-        run_A1_task1(task);
 
-        
-        A1_Task2 A1task2(app);
-        run_A1_task2(A1task2);
+        std::cout << "\n" << "=========== Task 1 ===========" << "\n";
+        run_A1_task1(app);
+        std::cout << "\n" << "======== Task 2 Naive ========" << "\n";
+        run_A1_task2(app);
+        std::cout << "\n" << "======= Task 2 Optimal =======" << "\n";
+        run_A1_task2(app, true);
     
         renderdoc::endCapture();
 

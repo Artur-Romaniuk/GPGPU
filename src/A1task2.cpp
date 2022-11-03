@@ -44,10 +44,10 @@ void A1_Task2::checkDefaultValues()
     if(errors>0)
         std::cout<<std::endl<<"=== There were " << errors << " error(s). ===" << std::endl;
 
-    std::cout << std::endl
-              << std::endl
-              << "========================" << std::endl
-              << std::endl;
+    // std::cout << std::endl
+    //           << std::endl
+    //           << "========================" << std::endl
+    //           << std::endl;
     // ### CHECK RESULT IS VALID ###
     // std::ofstream outFile("out.data");
     // for (unsigned int i = 0; i < workloadSize; i++)
