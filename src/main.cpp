@@ -44,12 +44,12 @@ void run_A1_task1(AppResources app) {
 void run_A1_task2(AppResources app, bool optimal = false) {
     CSVWriter csv;
     csv.newRow() << "wg" << "vs" << "timing";
-    std::vector<std::pair<uint32_t, uint32_t>> matrixSizes{{3200, 4000},{1000, 1333}};
+    std::vector<std::pair<uint32_t, uint32_t>> matrixSizes{{1600, 2000},{3200, 4000}, {6400, 8000}};
     for(auto matrixSize : matrixSizes){
         A1_Task2 task(app);
         task.prepare(matrixSize.first, matrixSize.second);
 
-        std::vector<std::pair<uint32_t, uint32_t>> workGroupSizes{{32,16}};
+        std::vector<std::pair<uint32_t, uint32_t>> workGroupSizes{{4,4},{16,8},{16,16},{32,16}};
         for(auto workGroupSize : workGroupSizes)
         {
             uint64_t avgTime{};

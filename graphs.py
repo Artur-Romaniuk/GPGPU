@@ -24,9 +24,15 @@ plt.show()
 # Plot rotation naive
 vectorRotateNaive = pd.read_csv('build/vectorRotateNaive.csv', sep=';')
 matrix_sizes = vectorRotateNaive.vs.unique()
+wg4_4_y = vectorRotateNaive[vectorRotateNaive.wg==4*4].timing
+wg16_8_y = vectorRotateNaive[vectorRotateNaive.wg==16*8].timing
+wg16_16_y = vectorRotateNaive[vectorRotateNaive.wg==16*16].timing
 wg32_16_y = vectorRotateNaive[vectorRotateNaive.wg==32*16].timing
 
 fix, ax = plt.subplots()
+ax.plot(matrix_sizes, wg4_4_y, marker = "o", label = "work-group size 4*4")
+ax.plot(matrix_sizes, wg16_8_y, marker = "o", label = "work-group size 16*8")
+ax.plot(matrix_sizes, wg16_16_y, marker = "o", label = "work-group size 16*16")
 ax.plot(matrix_sizes, wg32_16_y, marker = "o", label = "work-group size 32*16")
 
 ax.legend()
@@ -37,9 +43,15 @@ plt.show()
 # Plot rotation optimal
 vectorRotateOpt = pd.read_csv('build/vectorRotateOpt.csv', sep=';')
 matrix_sizes = vectorRotateOpt.vs.unique()
+wg4_4_y = vectorRotateOpt[vectorRotateOpt.wg==4*4].timing
+wg16_8_y = vectorRotateOpt[vectorRotateOpt.wg==16*8].timing
+wg16_16_y = vectorRotateOpt[vectorRotateOpt.wg==16*16].timing
 wg32_16_y = vectorRotateOpt[vectorRotateOpt.wg==32*16].timing
 
 fix, ax = plt.subplots()
+ax.plot(matrix_sizes, wg4_4_y, marker = "o", label = "work-group size 4*4")
+ax.plot(matrix_sizes, wg16_8_y, marker = "o", label = "work-group size 16*8")
+ax.plot(matrix_sizes, wg16_16_y, marker = "o", label = "work-group size 16*16")
 ax.plot(matrix_sizes, wg32_16_y, marker = "o", label = "work-group size 32*16")
 
 ax.legend()
