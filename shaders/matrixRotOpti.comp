@@ -36,8 +36,6 @@ void main() {
     
     uint rotLIDx = lSizeY - lIDy - 1;
     uint rotLIDy = lIDx;
-    uint rotGIDx = p.h - gIDy - 1;
-    uint rotGIDy = gIDx;
  
     if(!(gIDx >= p.w || gIDy >= p.h))
     {
@@ -45,5 +43,13 @@ void main() {
     }
     
     barrier();
-    v2[rotGIDy * p.h + rotGIDx] = shared_ints[rotLIDy * lSizeY + rotLIDx];
+
+    if(!(gIDx >= p.w || gIDy >= p.h))
+    {
+        uint globalCornerX = p.h - gIDy - rotLIDx - 1;
+        uint globalCornerY = gIDx - rotLIDy;
+        uint currentLocalPosition = lIDy * lSizeX + lIDx;
+        uint globalOffset = p.h * (currentLocalPosition / lSizeY) + currentLocalPosition % lSizeY;
+        v2[globalCornerY * p.h + globalCornerX + globalOffset] = shared_ints[currentLocalPosition];
+    }
 } 
