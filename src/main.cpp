@@ -16,7 +16,7 @@
 
 void run_A1_task1(AppResources app) {
     CSVWriter csv;
-    csv.newRow() << "work-group size" << "vector size" << "timing";
+    csv.newRow() << "wg" << "vs" << "timing";
     const std::vector<uint32_t> vecSizes{512*512, 1024*1024, 2048*2048, 2048*2048 + 31};
     for(const uint32_t vecsize : vecSizes){
         A1_Task1 task(app);
@@ -43,13 +43,13 @@ void run_A1_task1(AppResources app) {
 
 void run_A1_task2(AppResources app, bool optimal = false) {
     CSVWriter csv;
-    csv.newRow() << "work-group size" << "vector size" << "timing";
+    csv.newRow() << "wg" << "vs" << "timing";
     std::vector<std::pair<uint32_t, uint32_t>> matrixSizes{{3200, 4000},{1000, 1333}};
     for(auto matrixSize : matrixSizes){
         A1_Task2 task(app);
         task.prepare(matrixSize.first, matrixSize.second);
 
-        std::vector<std::pair<uint32_t, uint32_t>> workGroupSizes{{8,8},{16,8},{32,16}};
+        std::vector<std::pair<uint32_t, uint32_t>> workGroupSizes{{32,16}};
         for(auto workGroupSize : workGroupSizes)
         {
             uint64_t avgTime{};
