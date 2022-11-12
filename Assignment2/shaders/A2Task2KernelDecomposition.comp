@@ -1,0 +1,51 @@
+#version 450
+/* built in:
+in uvec3 gl_NumWorkGroups;
+in uvec3 gl_WorkGroupID;
+in uvec3 gl_LocalInvocationID;
+in uvec3 gl_GlobalInvocationID;
+in uint  gl_LocalInvocationIndex;
+*/
+
+// Why did we not have conflicts in the Reduction? 
+// Because of the sequential addressing (here we use interleaved => we have conflicts).
+// TO DO: tailor to your architecture (these parameter work for virtually all NVIDIA GPUs)
+#define NUM_BANKS			32
+#define NUM_BANKS_LOG		5
+#define SIMD_GROUP_SIZE		32
+
+layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushStruct {
+    uint size;
+} p;
+
+layout(binding = 0) buffer inoutBufer {uint array[];};
+layout(binding = 1) buffer offsetBufer {uint higherLevelArray[];};
+
+// TO DO: Shared variables
+
+// Bank conflicts
+#define AVOID_BANK_CONFLICTS
+#ifdef AVOID_BANK_CONFLICTS
+// TO DO: define your conflict-free macro here
+#else
+#define OFFSET(A) (A)
+#endif
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void main() 
+{
+	// TO DO: Kernel implementation
+    
+    // Cache first half of elements in the local memory
+	// Cache second half of elements
+
+	// Perform up-sweep
+
+	// Unroll the last steps when arrived at warp size
+ 	// Set the last element to 0
+
+
+    // Perform down-sweep
+}
