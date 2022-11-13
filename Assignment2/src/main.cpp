@@ -6,8 +6,8 @@
 #include <vector>
 #include "initialization.h"
 #include "utils.h"
-#include "A2task1.h"
-#include "A2task2.h"
+#include "A2Task1.h"
+#include "A2Task2.h"
 #include "A2Task1Solution/Sequential.h"
 #include "A2Task1Solution/Interleaved.h"
 #include "A2Task1Solution/KernelDecomposition.h"
@@ -16,7 +16,8 @@
 #include "renderdoc.h"
 #include <CSVWriter.h>
 void run_A2_task1(AppResources &app){
-    size_t size = 128*1024*1024;
+    // size_t size = 128*1024*1024;
+    size_t size = 128;
     A2Task1 a2Task1(size);
     std::cout<<"====== A2 TASK 1 ======" <<std::endl;
     auto evaluateTask1Solution = [&](A2Task1Solution* solution, std::string name, int N=10) {

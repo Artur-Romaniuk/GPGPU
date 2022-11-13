@@ -10,8 +10,7 @@
     #elif __linux__
         #include <dlfcn.h>
     #endif
-
-    static RENDERDOC_API_1_1_2 *rdoc_api = NULL;
+    static RENDERDOC_API_1_1_2 *rdoc_api = nullptr;
 #endif
 
 namespace renderdoc {
@@ -37,14 +36,14 @@ namespace renderdoc {
     void startCapture() {
         #ifdef ENABLE_RENDERDOC
             if (rdoc_api)
-                rdoc_api->StartFrameCapture(NULL, NULL);
+                rdoc_api->StartFrameCapture(nullptr, nullptr);
         #endif
     }
 
     void endCapture() {
         #ifdef ENABLE_RENDERDOC
             if (rdoc_api)
-                rdoc_api->EndFrameCapture(NULL, NULL);
+                rdoc_api->EndFrameCapture(nullptr, nullptr);
         #endif
     }
 }
