@@ -16,8 +16,25 @@ layout(push_constant) uniform PushStruct {
 layout(binding = 0) buffer inBuffer {uint v[];};
 layout(binding = 1) buffer outBuffer {uint g_v[];};
 
-// TO DO: Shared variables
+shared uint[gl_WorkGroupSize.x] shared_sum;
 
 void main() {
-	// TO DO: Kernel implementation
+    uint gID = gl_GlobalInvocationID.x;
+
+    uint index1 = gID + p.offset;
+    uint index2 = index1 + p.size/2;
+    if(index1>=p.size || index2>= p.size){
+        return;
+    }
+    shared_sum[gl_LocalInvocationIndex] = v[index1] + v[index2];
+
+    barrier();
+
+    if(gl_LocalInvocationIndex==0){
+        uint result = 0;
+        for(uint index=0; index<gl_WorkGroupSize.x; index++){
+            result+=shared_sum[index];
+        }
+        g_v[gl_WorkGroupID.x] = result;
+    }
 }

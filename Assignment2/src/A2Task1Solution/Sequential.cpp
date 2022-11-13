@@ -45,9 +45,27 @@ void A2Task1SolutionSequential::compute()
 
     vk::CommandBufferBeginInfo beginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
+    uint32_t groupCount = (  mpInput->size() + workGroupSize -1) / workGroupSize;
+    PushConstant pushConstant{
+        .size = static_cast<uint32_t>(mpInput->size()/2U),
+        .offset = pushConstant.size / 2U
+    };
+
     cb.begin(beginInfo);
 
     // TO DO: Implement reduction with sequential addressing
+    cb.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
+    cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSet, 0U, nullptr);
+
+
+    while(pushConstant.size>1U){
+        cb.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant), &pushConstant);
+        cb.dispatch(groupCount, 0, 0);
+        cb.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, vk::DependencyFlags(), {vk::MemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite)},{},{});
+        pushConstant.size/=2U;
+        pushConstant.offset/=2U;
+        groupCount = (pushConstant.size + workGroupSize -1) / workGroupSize; 
+    }
 
     cb.end();
 

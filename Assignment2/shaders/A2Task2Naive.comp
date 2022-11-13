@@ -19,5 +19,12 @@ layout(binding = 0) buffer inBuffer {uint v[];};
 layout(binding = 1) buffer outBufer {uint g_v[];};
 
 void main() {
-	// TO DO: Kernel implementation
+    uint gID = gl_GlobalInvocationID.x;
+    uint index1 = gID + p.offset + 1;
+    uint index2 = gID;
+
+    if(index1< p.size && index2 < p.size)
+    {
+        g_v[index1] = v[index1] + v[index2];
+    }
 }

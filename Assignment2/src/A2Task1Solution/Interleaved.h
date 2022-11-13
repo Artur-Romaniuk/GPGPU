@@ -10,6 +10,7 @@ public:
     void compute() override;
     uint result() const override;
     void cleanup() override;
+    void print_mem() const;
 
 private:
     struct PushConstant
