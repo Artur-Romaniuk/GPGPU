@@ -10,14 +10,73 @@ layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
 
 layout(push_constant) uniform PushStruct {
     uint size;
-    uint offset;
 } p;
 
 layout(binding = 0) buffer inBuffer {uint v[];};
 layout(binding = 1) buffer outBuffer {uint g_v[];};
 
-// TO DO: Shared variables
+shared uint[gl_WorkGroupSize.x] shared_sum;
 
 void main() {
-	// TO DO: Kernel implementation
+    uint gID = gl_GlobalInvocationID.x;
+    uint threadCount = gl_WorkGroupSize.x / 2;
+
+    uint index1 = gID;
+    uint index2 = index1 + p.size;
+    if(index1 >= p.size){
+        shared_sum[gl_LocalInvocationIndex] = 0;
+    } else{
+        shared_sum[gl_LocalInvocationIndex] = v[index1] + v[index2];
+    }
+
+    barrier();
+
+    if(gl_WorkGroupSize != 128){
+        while(threadCount>=1){
+            if(gl_LocalInvocationIndex<threadCount){
+                shared_sum[gl_LocalInvocationIndex]+=shared_sum[gl_LocalInvocationIndex+threadCount];
+        }
+        threadCount/=2;
+        barrier();
+    }
+    }else{
+        if(gl_LocalInvocationIndex<64){
+            shared_sum[gl_LocalInvocationIndex]+=shared_sum[gl_LocalInvocationIndex+64];
+        }
+        barrier();
+
+        if(gl_LocalInvocationIndex<32){
+            shared_sum[gl_LocalInvocationIndex]+=shared_sum[gl_LocalInvocationIndex+32];
+        }
+        barrier();
+
+        if(gl_LocalInvocationIndex<16){
+            shared_sum[gl_LocalInvocationIndex]+=shared_sum[gl_LocalInvocationIndex+16];
+        }
+        barrier();
+
+        if(gl_LocalInvocationIndex<8){
+            shared_sum[gl_LocalInvocationIndex]+=shared_sum[gl_LocalInvocationIndex+8];
+        }
+        barrier();
+
+        if(gl_LocalInvocationIndex<4){
+            shared_sum[gl_LocalInvocationIndex]+=shared_sum[gl_LocalInvocationIndex+4];
+        }
+        barrier();
+
+        if(gl_LocalInvocationIndex<2){
+            shared_sum[gl_LocalInvocationIndex]+=shared_sum[gl_LocalInvocationIndex+2];
+        }
+        barrier();
+
+        if(gl_LocalInvocationIndex<1){
+            shared_sum[gl_LocalInvocationIndex]+=shared_sum[gl_LocalInvocationIndex+1];
+        }
+        barrier();
+    }
+
+    if(gl_LocalInvocationIndex==0){
+        g_v[gl_WorkGroupID.x] = shared_sum[0];
+    }
 }

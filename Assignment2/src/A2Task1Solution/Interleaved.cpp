@@ -45,9 +45,9 @@ void A2Task1SolutionInterleaved::compute()
 
     vk::CommandBufferBeginInfo beginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
-    uint32_t groupCount = (  mpInput->size() + workGroupSize -1) / workGroupSize;
+    uint32_t groupCount = (  mpInput->size()/2 + workGroupSize -1) / workGroupSize;
     PushConstant pushConstant{
-        .size = static_cast<uint32_t>(mpInput->size()),
+        .size = static_cast<uint32_t>(mpInput->size()/2),
         .stride = 1U
     };
 

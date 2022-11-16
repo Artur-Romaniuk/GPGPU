@@ -52,6 +52,11 @@ void A2Task1SolutionKernelDecomposition::compute()
 
     vk::CommandBufferBeginInfo beginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
+    uint32_t groupCount = (  mpInput->size()/2 + workGroupSize -1) / workGroupSize;
+    PushConstant pushConstant{
+        .size = static_cast<uint32_t>(mpInput->size()/2),
+    };
+
     cb.begin(beginInfo);
 
     // TO DO: Implement reduction with kernel decomposition
@@ -59,8 +64,26 @@ void A2Task1SolutionKernelDecomposition::compute()
     // That buffer is read back for the correctness check
     // (A2Task1SolutionKernelDecomposition::result())
     // HINT: You can alternate between the two provided descriptor sets to implement ping-pong
+    cb.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
 
+    uint8_t descriptorSetIndex = 0U;
+
+    while(pushConstant.size>1U){
+        cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSet[descriptorSetIndex], 0U, nullptr);
+        cb.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant), &pushConstant);
+        cb.dispatch(groupCount, 1, 1);
+        cb.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, vk::DependencyFlags(), {vk::MemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite)},{},{});
+        pushConstant.size/=workGroupSize;
+        groupCount = (pushConstant.size + workGroupSize -1) / workGroupSize; 
+        descriptorSetIndex = descriptorSetIndex==0 ? 1 : 0; 
+    }
     cb.end();
+
+    if(descriptorSetIndex==0){
+        activeBuffer==1;
+    }else{
+        activeBuffer==0;
+    }
 
     vk::SubmitInfo submitInfo = vk::SubmitInfo(0, nullptr, nullptr, 1, &cb);
 
