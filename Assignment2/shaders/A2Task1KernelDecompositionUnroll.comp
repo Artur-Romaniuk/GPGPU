@@ -31,7 +31,7 @@ void main() {
 
     barrier();
 
-    if(gl_WorkGroupSize != 128){
+    if(gl_WorkGroupSize.x != 128){
         while(threadCount>=1){
             if(gl_LocalInvocationIndex<threadCount){
                 shared_sum[gl_LocalInvocationIndex]+=shared_sum[gl_LocalInvocationIndex+threadCount];
