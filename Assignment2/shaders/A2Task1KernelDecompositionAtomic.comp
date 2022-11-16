@@ -28,7 +28,7 @@ void main() {
     uint index1 = gID;
     uint index2 = index1 + p.size;
     if(index1 < p.size){
-        attomicAdd(sum, v[index1] + v[index2]);
+        atomicAdd(sum, v[index1] + v[index2]);
     }
     barrier();
 
