@@ -69,7 +69,7 @@ void A2Task1SolutionKernelDecomposition::compute()
     uint8_t descriptorSetIndex = 0U;
 
     while(pushConstant.size>1U){
-        cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSet[descriptorSetIndex], 0U, nullptr);
+        cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSets[descriptorSetIndex], 0U, nullptr);
         cb.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant), &pushConstant);
         cb.dispatch(groupCount, 1, 1);
         cb.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, vk::DependencyFlags(), {vk::MemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite)},{},{});
