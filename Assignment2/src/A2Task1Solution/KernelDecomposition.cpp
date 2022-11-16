@@ -68,7 +68,7 @@ void A2Task1SolutionKernelDecomposition::compute()
 
     uint8_t descriptorSetIndex = 0U;
 
-    while(pushConstant.size>1U){
+    while(pushConstant.size>=1U){
         cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSets[descriptorSetIndex], 0U, nullptr);
         cb.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant), &pushConstant);
         cb.dispatch(groupCount, 1, 1);
@@ -79,11 +79,7 @@ void A2Task1SolutionKernelDecomposition::compute()
     }
     cb.end();
 
-    if(descriptorSetIndex==0){
-        activeBuffer==1;
-    }else{
-        activeBuffer==0;
-    }
+    descriptorSetIndex=activeBuffer;
 
     vk::SubmitInfo submitInfo = vk::SubmitInfo(0, nullptr, nullptr, 1, &cb);
 

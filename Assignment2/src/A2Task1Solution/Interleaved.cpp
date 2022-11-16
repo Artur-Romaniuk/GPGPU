@@ -58,13 +58,13 @@ void A2Task1SolutionInterleaved::compute()
     cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSet, 0U, nullptr);
 
 
-    while(pushConstant.size>1U){
+    while(pushConstant.size>=1U){
         cb.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant), &pushConstant);
         cb.dispatch(groupCount, 1, 1);
         cb.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, vk::DependencyFlags(), {vk::MemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite)},{},{});
         pushConstant.size/=2U;
         pushConstant.stride*=2;
-        groupCount = (pushConstant.size + workGroupSize -1) / workGroupSize; 
+        groupCount = (pushConstant.size +  workGroupSize-1) / workGroupSize; 
     }
 
 

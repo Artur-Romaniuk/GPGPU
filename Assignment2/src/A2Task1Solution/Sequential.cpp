@@ -48,7 +48,7 @@ void A2Task1SolutionSequential::compute()
     uint32_t groupCount = (  mpInput->size()/2 + workGroupSize -1) / workGroupSize;
     PushConstant pushConstant{
         .size = static_cast<uint32_t>(mpInput->size()/2),
-        .offset = pushConstant.size / 2U
+        .offset = pushConstant.size
     };
 
     cb.begin(beginInfo);
@@ -58,7 +58,7 @@ void A2Task1SolutionSequential::compute()
     cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSet, 0U, nullptr);
 
 
-    while(pushConstant.size>1U){
+    while(pushConstant.size>=1U){
         cb.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant), &pushConstant);
         cb.dispatch(groupCount, 1, 1);
         cb.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, vk::DependencyFlags(), {vk::MemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite)},{},{});
