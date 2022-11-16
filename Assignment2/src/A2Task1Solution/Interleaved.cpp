@@ -60,7 +60,7 @@ void A2Task1SolutionInterleaved::compute()
 
     while(pushConstant.size>1U){
         cb.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant), &pushConstant);
-        cb.dispatch(groupCount, 0, 0);
+        cb.dispatch(groupCount, 1, 1);
         cb.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, vk::DependencyFlags(), {vk::MemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite)},{},{});
         pushConstant.size/=2U;
         pushConstant.stride*=2;
