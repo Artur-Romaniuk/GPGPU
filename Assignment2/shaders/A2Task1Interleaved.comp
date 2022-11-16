@@ -16,11 +16,9 @@ layout(push_constant) uniform PushConstant {
 layout(binding = 0) buffer inoutBufer {uint v[];};
 
 void main() {
-	// TO DO: Kernel implementation
     uint gID = gl_GlobalInvocationID.x;
 
     uint index1 = gID * (p.stride * 2);
     uint index2 = index1 + p.stride;
-    if(index1< p.size && index2 < p.size)
-        v[index1] = v[index1] + v[index2];
+    v[index1] += v[index2];
 }
