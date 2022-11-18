@@ -20,11 +20,12 @@ layout(binding = 1) buffer outBufer {uint g_v[];};
 
 void main() {
     uint gID = gl_GlobalInvocationID.x;
-    uint index1 = gID + p.offset + 1;
-    uint index2 = gID;
+    uint index1 = gID;
+    uint index2 = gID - p.offset;
 
-    if(index1< p.size && index2 < p.size)
-    {
+    if(gID<p.offset){
+        g_v[index1] = v[index1];
+    }else{
         g_v[index1] = v[index1] + v[index2];
     }
 }

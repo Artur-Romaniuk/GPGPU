@@ -62,6 +62,12 @@ void A2Task2SolutioNaive::compute() {
 
     vk::CommandBufferBeginInfo beginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
 
+    uint32_t groupCount = ( workSize + workGroupSize -1) / workGroupSize;
+    PushStruct pushConstant{
+        .size = static_cast<uint32_t>(workSize),
+        .offset = 1
+    };
+
     cb.begin(beginInfo);
 
     cb.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
@@ -71,7 +77,17 @@ void A2Task2SolutioNaive::compute() {
     // That buffer is read back for the correctness check
     // (A2Task2SolutioNaive::result())
     // HINT: You can alternate between the two provided descriptor sets to implement ping-pong
-    
+
+    while(pushConstant.offset<pushConstant.size)
+    {
+        cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSets[activeBuffer], 0U, nullptr);
+        cb.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushStruct), &pushConstant);
+        cb.dispatch(groupCount, 1, 1);
+        cb.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, vk::DependencyFlags(), {vk::MemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite)},{},{});
+        pushConstant.offset*=2;
+        activeBuffer = ((activeBuffer==0) ? 1 : 0); 
+    }
+
     cb.end();
 
     vk::SubmitInfo submitInfo = vk::SubmitInfo(0, nullptr, nullptr, 1, &cb);
