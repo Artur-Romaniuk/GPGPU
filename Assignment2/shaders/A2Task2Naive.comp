@@ -23,9 +23,11 @@ void main() {
     uint index1 = gID;
     uint index2 = gID - p.offset;
 
-    if(gID<p.offset){
-        g_v[index1] = v[index1];
-    }else{
-        g_v[index1] = v[index1] + v[index2];
+    if(gID<p.size){
+        if(gID<p.offset){
+            g_v[index1] = v[index1];
+        }else{
+            g_v[index1] = v[index1] + v[index2];
+        }
     }
 }
