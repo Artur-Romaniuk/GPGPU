@@ -54,7 +54,7 @@ void A2Task1SolutionKernelDecomposition::compute()
 
     uint32_t groupCount = (  mpInput->size()/2 + workGroupSize -1) / workGroupSize;
     PushConstant pushConstant{
-        .size = static_cast<uint32_t>(mpInput->size()/2),
+        .size = static_cast<uint32_t>(mpInput->size()/2)
     };
 
     cb.begin(beginInfo);
@@ -66,20 +66,17 @@ void A2Task1SolutionKernelDecomposition::compute()
     // HINT: You can alternate between the two provided descriptor sets to implement ping-pong
     cb.bindPipeline(vk::PipelineBindPoint::eCompute, pipeline);
 
-    uint8_t descriptorSetIndex = 0U;
-
-    while(pushConstant.size>=1U){
-        cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSets[descriptorSetIndex], 0U, nullptr);
+    while(pushConstant.size>1U)
+    {
+        cb.bindDescriptorSets(vk::PipelineBindPoint::eCompute, pipelineLayout, 0U, 1U, &descriptorSets[activeBuffer], 0U, nullptr);
         cb.pushConstants(pipelineLayout, vk::ShaderStageFlagBits::eCompute, 0, sizeof(PushConstant), &pushConstant);
         cb.dispatch(groupCount, 1, 1);
         cb.pipelineBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eComputeShader, vk::DependencyFlags(), {vk::MemoryBarrier(vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eShaderWrite)},{},{});
-        pushConstant.size/=workGroupSize;
-        groupCount = (pushConstant.size + workGroupSize -1) / workGroupSize; 
-        descriptorSetIndex = descriptorSetIndex==0 ? 1 : 0; 
+        pushConstant.size/=(workGroupSize*2);
+        groupCount = (pushConstant.size + workGroupSize -1) / workGroupSize;
+        activeBuffer = (activeBuffer==0) ? 1 : 0;
     }
     cb.end();
-
-    descriptorSetIndex=activeBuffer;
 
     vk::SubmitInfo submitInfo = vk::SubmitInfo(0, nullptr, nullptr, 1, &cb);
 
