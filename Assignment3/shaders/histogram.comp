@@ -1,0 +1,23 @@
+#version 450
+
+layout(local_size_x_id = 0, local_size_y = 1, local_size_z = 1) in;
+layout(constant_id = 1) const int numBins=5;
+
+layout(push_constant) uniform PushStruct {
+    uint size;
+} p;
+
+// these bindings are reversed for the vertical
+layout(binding = 0) buffer readonly inBuf {float img[];};
+layout(binding = 1) buffer outBuf {uint histogram[];};
+
+
+shared uint[numBins] local_hist;
+
+void main(){
+	const uint Gid = gl_GlobalInvocationID.x;
+	const uint Lid = gl_LocalInvocationID.x;
+	// set local histogram values to zero
+	// accumulate local histogram
+	// atomic add the results in the output histogram
+}

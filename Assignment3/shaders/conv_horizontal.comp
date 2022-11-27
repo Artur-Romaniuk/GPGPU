@@ -1,0 +1,41 @@
+#version 450
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+layout(constant_id = 2) const int kernelRadius=5;
+layout(constant_id = 3) const int H_ELEMENTS = 3; // this gets overwritten
+
+layout(push_constant) uniform PushStruct {
+    uint width;
+    uint height;
+    uint pitch;
+    float kernelWeight;
+    float[32] kernel;
+} p;
+
+// these variables are reversed for the vertical pass
+// because the output of current pass is input of next pass
+layout(binding = 0) buffer inBuf {float v[];};
+layout(binding = 1) buffer outBuf {float o_v[];};
+
+// here we simplify and hardcode it
+shared float[gl_WorkGroupSize.y][gl_WorkGroupSize.x*(H_ELEMENTS+2)] tile;
+
+void main(){
+  uvec2 Wgid = gl_WorkGroupID.xy;
+  uvec2 Lid = gl_LocalInvocationID.xy;
+  uvec2 Wgs = gl_WorkGroupSize.xy;
+		// TODO:
+	//const int baseX = ...
+	//const int baseY = ...
+	//const int offset = ...
+
+	//the left halo border of the tile
+
+	//Load main data + right halo
+
+	// Sync the work-items after loading
+
+	
+	//Compute and store results
+	
+}

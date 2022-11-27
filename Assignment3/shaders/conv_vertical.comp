@@ -1,0 +1,33 @@
+#version 450
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+layout(constant_id = 2) const int kernelRadius=5;
+layout(constant_id = 3) const int V_ELEMENTS = 3; // this gets overwritten
+
+layout(push_constant) uniform PushStruct {
+    uint width;
+    uint height;
+    uint pitch;
+    float kernelWeight;
+    float[32] kernel;
+} p;
+
+// these bindings are reversed for the vertical
+// it changes nothing for you though.
+layout(binding = 0) buffer outBuf {float o_v[];};
+layout(binding = 1) buffer inBuf {float v[];};
+
+// here we simplify and hardcode it
+
+shared float[gl_WorkGroupSize.y*(2+V_ELEMENTS)][gl_WorkGroupSize.x] tile;
+
+void main(){
+  uvec2 Wgid = gl_WorkGroupID.xy;
+  uvec2 Lid = gl_LocalInvocationID.xy;
+  uvec2 Wgs = gl_WorkGroupSize.xy;
+	// TODO:
+	// Conceptually similar to ConvHorizontal
+	// Load top halo + main data + bottom halo
+
+	// Compute and store results
+}

@@ -1,0 +1,41 @@
+#version 450
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushStruct {
+    uint width;
+    uint height;
+    uint pitch;
+    float kernelWeight;
+    float[9] kernel; // size of kernel is fixed!
+} p;
+
+layout(binding = 0) buffer inBuf {float v[];};
+layout(binding = 1) buffer outBuf {float o_v[];};
+// local memory will hold the center pixels + halo
+//         TODO: fill size of local memory using gl_WorkGroupSize.x, .y, and kernel size
+//          V V
+shared float[3][3] tile;
+
+void main() {
+  uvec2 Gid = gl_GlobalInvocationID.xy;
+  uvec2 Lid = gl_LocalInvocationID.xy;
+  uint TILE_X = gl_WorkGroupSize.x;
+  uint TILE_Y = gl_WorkGroupSize.y;
+	// TODO:
+  // fill local memory with zeros
+
+  // load the tile from global to local memory
+
+  // load the halo pixels:
+    // load left halo (only rightmost threads are working)
+    // load right halo (only leftmost threads are working)
+    // load top halo (coalesced read)
+    // load bottom halo (coalesced read)
+
+  // using a loop, multiply the kernel weights to their relevant pixel value
+  // (or perform manually for even more performance) 
+
+  // write to global memory
+  
+}
