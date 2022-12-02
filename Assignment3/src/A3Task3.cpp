@@ -8,7 +8,7 @@
 #include "initialization.h"
 #include "utils.h"
 #include "task_common.h"
-#include "A3task3.h"
+#include "A3Task3.h"
 #include "host_timer.h"
 
 A3Task3::A3Task3(float *in, uint32_t size, uint32_t nBins)

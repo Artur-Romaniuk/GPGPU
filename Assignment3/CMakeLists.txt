@@ -28,11 +28,9 @@ endfunction(add_shader)
 add_subdirectory(libs)
 find_package(Vulkan REQUIRED)
 
-if(DEFINED ENV{RENDERDOC_PATH})
-    set(RENDERDOC_PATH ENV{RENDERDOC_PATH})
-elseif(WIN32)
-    set(RENDERDOC_PATH "C:\\Program Files\\RenderDoc")
-endif() # TODO LINUX
+
+set(RENDERDOC_PATH /usr/include)
+
 
 ### Don't forget that there is a CMakeLists.txt in libs ! ###
 
