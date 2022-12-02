@@ -26,12 +26,35 @@ void main() {
   const uint pixelIndex = p.pitch * Gid.y + Gid.x;
 	// TODO:
   // fill local memory with zeros
-  // load the tile from global to local memory
+  if (Lid.x == 0){
+    tile[Lid.y + 1][0] = 0;
+    if(Lid.y == 0){
+      tile[0][0] = 0;
+    }
+  }else if (Lid.x == (TILE_X - 1)){
+    tile[Lid.y + 1][TILE_X + 1] = 0;
+    if(Lid.y == 0){
+      tile[0][TILE_X + 1] = 0;
+    }
+  }
 
+  if (Lid.y == 0){
+    tile[0][Lid.x + 1] = 0;
+    if(Lid.x == 0){
+      tile[TILE_Y + 1][0] = 0;
+    }
+  }else if (Lid.y == (TILE_Y - 1)){
+    tile[TILE_Y + 1][Lid.x + 1] = 0;
+    if(Lid.x == 0){
+      tile[TILE_Y + 1][TILE_X + 1] = 0;
+    }
+  }
+
+  barrier();
+
+  // load the tile from global to local memory
   if(Gid.x < p.width && Gid.y < p.height){
     tile[Lid.y+1][Lid.x+1] = v[pixelIndex];
-  }else{
-    tile[Lid.y+1][Lid.x+1] = 0;
   }
 
   // load the halo pixels:
@@ -39,61 +62,26 @@ void main() {
     // load right halo (only leftmost threads are working)
     // load top halo (coalesced read)
     // load bottom halo (coalesced read)
-  if(Lid.x == 0){
-    if(Gid.x != 0){
+  if(Lid.x == 0 && Gid.x != 0){
       tile[Lid.y+1][0] = v[pixelIndex - 1];
-    }else{
-      tile[Lid.y+1][0] = 0;
-    }
-  }else if(Lid.x == (TILE_X-1)){
-    if(Gid.x != p.width-1){
-      tile[Lid.y+1][(TILE_X-1)] = v[pixelIndex + 1];
-    }else{
-      tile[Lid.y+1][0] = 0;
-    }
+  }else if(Lid.x == (TILE_X-1) && Gid.x < p.width-1){
+      tile[Lid.y+1][TILE_X+1] = v[pixelIndex + 1];
   }
 
-  if(Lid.y == 0){
-    if(Gid.y != 0){
+  if(Lid.y == 0 && Gid.y != 0){
       tile[0][Lid.x+1] = v[p.pitch * (Gid.y-1) + Gid.x];
-    }else{
-      tile[0][Lid.x+1] = 0;
-    }
-  }else if(Lid.y == (TILE_Y-1)){
-    if(Gid.y != p.height-1){
-      tile[TILE_Y-1][Lid.x+1] = v[p.pitch * (Gid.y+1) + Gid.x];
-    } else{
-      tile[TILE_Y-1][Lid.x+1] = 0;
-    }
+  }else if(Lid.y == (TILE_Y-1) && Gid.y < p.height-1){
+      tile[TILE_Y+1][Lid.x+1] = v[p.pitch * (Gid.y+1) + Gid.x];
   }
   
-  if(Lid.x == 1 && Lid.y == 1){
-    if(Gid.x != 0 && Gid.y != 0){
-      tile[0][0] = v[p.pitch * (Gid.y-2) + Gid.x - 2];
-    }else{
-      tile[0][0] = 0;
-    }
-  }
-  if(Lid.x == (TILE_X-2) && Lid.y == 1){
-    if(Gid.x != p.width-1 && Gid.y != 0){
-      tile[0][TILE_X-1] = v[p.pitch * (Gid.y-2) + Gid.x + 2];
-    }else{
-      tile[0][TILE_X-1] = 0;
-    }
-  }
-  if(Lid.x == 1 && Lid.y == (TILE_Y-2)){
-    if(Gid.x != 0 && Gid.y != p.height-1){
-      tile[TILE_Y-1][0] = v[p.pitch * (Gid.y+2) + Gid.x - 2];
-    }else{
-      tile[TILE_Y-1][0]  = 0;
-    }
-  }
-  if(Lid.x == (TILE_X-2) && Lid.y == (TILE_Y-2)){
-    if(Gid.x != p.width-1 && Gid.y != p.height-1){
-      tile[TILE_Y-1][TILE_X-1] = v[p.pitch * (Gid.y+2) + Gid.x + 2];
-    }else{
-      tile[TILE_Y-1][TILE_X-1]  = 0;
-    }
+  if(Lid.x == 0 && Lid.y == 0 && Gid.x != 0 && Gid.y != 0){
+    tile[0][0] = v[p.pitch * (Gid.y-1) + Gid.x - 1];
+  }else if(Lid.x == (TILE_X-1) && Lid.y == 0 && Gid.x < p.width-1 && Gid.y != 0){
+    tile[0][TILE_X+1] = v[p.pitch * (Gid.y-1) + Gid.x + 1];
+  }else if(Lid.x == 0 && Lid.y == (TILE_Y-1) && Gid.x != 0 && Gid.y < p.height-1){
+      tile[TILE_Y+1][0] = v[p.pitch * (Gid.y+1) + Gid.x - 1];
+  }else if(Lid.x == (TILE_X-1) && Lid.y == (TILE_Y-1) && Gid.x < p.width-1 && Gid.y < p.height-1){
+      tile[TILE_Y+1][TILE_X+1] = v[p.pitch * (Gid.y+1) + Gid.x + 1];
   }
 
   barrier();
@@ -108,7 +96,7 @@ void main() {
   result+= tile[Lid.y+2][Lid.x] * p.kernel[6];
   result+= tile[Lid.y+2][Lid.x+1] * p.kernel[7];
   result+= tile[Lid.y+2][Lid.x+2] * p.kernel[8];
-
+  result*= p.kernelWeight;
 
   // write to global memory
   if(Gid.x < p.width && Gid.y < p.height)
