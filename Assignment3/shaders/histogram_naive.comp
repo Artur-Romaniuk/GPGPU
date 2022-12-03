@@ -14,4 +14,14 @@ layout(binding = 1) buffer outBuf {uint histogram[];};
 void main(){
     const uint Gid = gl_GlobalInvocationID.x;
 
+    if(Gid<p.size){
+        int p = int(matrix[Gid] * numBins);
+		int h_idx = (p > 0) ? p : 0;
+        if(h_idx>numBins-1){
+            h_idx=numBins-1;
+        }
+
+        atomicAdd(histogram[h_idx],1);
+    }
+
 }

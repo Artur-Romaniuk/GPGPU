@@ -18,6 +18,25 @@ void main(){
 	const uint Gid = gl_GlobalInvocationID.x;
 	const uint Lid = gl_LocalInvocationID.x;
 	// set local histogram values to zero
+	if(Lid < numBins){
+		local_hist[Lid] = 0;
+	}
+	barrier();
+
 	// accumulate local histogram
+	if(Gid<p.size){
+        int p = int(img[Gid] * numBins);
+		int h_idx = (p > 0) ? p : 0;
+        if(h_idx>numBins-1){
+            h_idx=numBins-1;
+        }
+
+        atomicAdd(local_hist[h_idx],1);
+    }
+	barrier();
 	// atomic add the results in the output histogram
+
+	if(Lid < numBins){
+        atomicAdd(histogram[Lid],local_hist[Lid]);
+	}
 }
