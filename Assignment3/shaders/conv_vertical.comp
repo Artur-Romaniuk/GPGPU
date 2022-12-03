@@ -22,12 +22,50 @@ layout(binding = 1) buffer inBuf {float v[];};
 shared float[gl_WorkGroupSize.y*(2+V_ELEMENTS)][gl_WorkGroupSize.x] tile;
 
 void main(){
-  uvec2 Wgid = gl_WorkGroupID.xy;
-  uvec2 Lid = gl_LocalInvocationID.xy;
-  uvec2 Wgs = gl_WorkGroupSize.xy;
-	// TODO:
-	// Conceptually similar to ConvHorizontal
-	// Load top halo + main data + bottom halo
+    uvec2 Wgid = gl_WorkGroupID.xy;
+    uvec2 Lid = gl_LocalInvocationID.xy;
+    uvec2 Wgs = gl_WorkGroupSize.xy;
+    uvec2 Gid = gl_GlobalInvocationID.xy;
 
-	// Compute and store results
+    const uint workGroupOffset = Wgs.y * V_ELEMENTS * Wgid.y;
+    const uint adjustedGid = workGroupOffset + Lid.y;
+
+	// Conceptually similar to ConvHorizontal
+
+    for (uint index = 0U; index < (V_ELEMENTS + 2); index++){
+        const uint tileY = index * Wgs.y + Lid.y;
+        tile[tileY][Lid.x] = 0;
+    }
+
+    barrier();
+
+    for (uint index = 0; index < V_ELEMENTS+2; index++){
+        const uint tileY = index * Wgs.y + Lid.y;
+        const uint imageY = adjustedGid + Wgs.y*(index-1);
+
+        if (imageY < p.height && Gid.x < p.width){
+            tile[tileY][Lid.x] = v[p.pitch * imageY + Gid.x];
+        }
+    }
+
+    // Sync the work-items after loading
+    barrier();
+
+    //Compute and store results
+    for(uint index = 1; index<V_ELEMENTS+1; index++){
+        float value = 0;
+
+        for (int k = -kernelRadius; k <= kernelRadius; k++){
+            const uint tileY = index * Wgs.y + Lid.y + k;
+
+            if (tileY >= 0 && tileY < p.height){
+                value += tile[tileY][Lid.x] * p.kernel[kernelRadius - k];
+            }
+        }
+        const uint imageY = adjustedGid + Wgs.y*(index-1);
+
+        if (imageY < p.height && Gid.x < p.width){
+            o_v[p.pitch*imageY + Gid.x] = value*p.kernelWeight;
+        }
+    }
 }

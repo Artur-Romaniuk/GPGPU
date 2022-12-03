@@ -21,21 +21,53 @@ layout(binding = 1) buffer outBuf {float o_v[];};
 shared float[gl_WorkGroupSize.y][gl_WorkGroupSize.x*(H_ELEMENTS+2)] tile;
 
 void main(){
-  uvec2 Wgid = gl_WorkGroupID.xy;
-  uvec2 Lid = gl_LocalInvocationID.xy;
-  uvec2 Wgs = gl_WorkGroupSize.xy;
-		// TODO:
-	//const int baseX = ...
-	//const int baseY = ...
-	//const int offset = ...
+    uvec2 Wgid = gl_WorkGroupID.xy;
+    uvec2 Lid = gl_LocalInvocationID.xy;
+    uvec2 Wgs = gl_WorkGroupSize.xy;
+    uvec2 Gid = gl_GlobalInvocationID.xy;
+
+    const uint workGroupOffset = Wgs.x * H_ELEMENTS * Wgid.x;
+    const uint adjustedGid = workGroupOffset + Lid.x;
+
+    for(uint index = 0; index<H_ELEMENTS+2; index++){
+        const uint tileX = index * Wgs.x + Lid.x;
+        tile[Lid.y][tileX] = 0;
+    }
+    
+    barrier();
 
 	//the left halo border of the tile
 
 	//Load main data + right halo
+    for (int index = 0; index < H_ELEMENTS+2; index++){
+        const uint tileX = index * Wgs.x + Lid.x;
+        const uint imageX = adjustedGid + Wgs.x*(index-1);
 
-	// Sync the work-items after loading
+        if (imageX < p.width && Gid.y < p.height){
+            tile[Lid.y][tileX] = v[p.pitch * Gid.y + imageX];
+        }
+    }
 
+	//Sync the work-items after loading
+    barrier();
 	
 	//Compute and store results
-	
+    for(uint index = 1; index<H_ELEMENTS+1; index++){
+        float value = 0;
+
+        for (int k = -kernelRadius; k <= kernelRadius; k++){
+            const uint tileX = index * Wgs.x + Lid.x + k;
+
+            if (tileX >= 0 && tileX < p.width){
+                value += tile[Lid.y][tileX] * p.kernel[kernelRadius - k];
+            }
+        }
+
+        const uint imageX = adjustedGid + Wgs.x*(index-1);
+
+        if (imageX < p.width && Gid.y < p.height){
+            o_v[p.pitch*Gid.y + imageX] = value*p.kernelWeight;
+        }
+    }
+
 }
