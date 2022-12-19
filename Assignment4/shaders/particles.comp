@@ -120,7 +120,6 @@ bool CheckCollisions(	vec4 x0, vec4 x1,
 		if(nProcessed + k > nTriangles){
 			k = nTriangles - nProcessed;
 		}
-		barrier();
 
 		if(gl_LocalInvocationIndex < k*3){
 			triangleCache[gl_LocalInvocationIndex] = gTriangleSoup[nProcessed + gl_LocalInvocationIndex];
@@ -141,12 +140,10 @@ bool CheckCollisions(	vec4 x0, vec4 x1,
 				}
 			}
 		}
-		barrier();
 
 		nProcessed += k; 
 		barrier();
 	}
-	barrier();
 
 	return intersected;
 }
@@ -179,19 +176,6 @@ void main() {
 	vec4 x0 = gPosLife[Gid];
 	vec4 v0 = gVelMass[Gid];
 
-	uint anotherParticle = (Gid + 10) % nParticles;
-	if(length(v0)<0.5f && gAlive[anotherParticle] == 0){
-		x0.w += 20;
-		gAlive[anotherParticle] = 1;
-		gAlive[Gid] = 1;
-		gPosLife[anotherParticle] = x0;
-		gVelMass[anotherParticle] = vec4(5,5,5,0);
-		gVelMass[Gid] *= 4;
-	}
-	barrier();
-
-	if(Gid>nParticles)
-		return;
 	//vec4 gAccel = vec4(1.f, 0.f, 0.f, 0.f);
 	vec4 gAccel = vec4(0.f, 0.f, -9.81f, 0.f);
 
@@ -214,25 +198,40 @@ void main() {
 	// x0.w -= p.dT;
 	// gPosLife[Gid] = x0;
 
+
+	vec4 x1 = x0 + v0 * p.dT + (0.5f * gAccel * p.dT * p.dT);
+	vec4 newAccel = gAccel + 0.5f * (F0 / mass); 
+	vec4 v1 = v0 + 0.5F * (gAccel + newAccel) * p.dT;
+
+	float isectT;
+	vec4 isectN;
+
+	barrier();
+	if(CheckCollisions(x0, x1, nTriangles, isectT, isectN) == true){
+		v1 = v1 - 2*dot3(v1, isectN)*isectN;
+		v1 *= 0.8;
+		x1 = x0 + (x1 - x0) * (isectT * 0.9);
+	}
+	barrier();
+
 	x0.w -= p.dT;
 	if(x0.w < 0){
 		gAlive[Gid] = 0;
 	}else{
-		vec4 x1 = x0 + v0 * p.dT + (0.5f * gAccel * p.dT * p.dT);
-		vec4 newAccel = gAccel + 0.5f * (F0 / mass); 
-		vec4 v1 = v0 + 0.5F * (gAccel + newAccel) * p.dT;
-
-		float isectT;
-		vec4 isectN;
-
-		if(CheckCollisions(x0, x1, nTriangles, isectT, isectN) == true){
-			v1 = v1 - 2*dot3(v1, isectN)*isectN;
-			v1 *= 0.8;
-			x1 = x0 + (x0-x1) * (isectT * 0.9);
-		}
-
 		x0 = x1;
 		v0 = v1;
+	}
+
+
+	barrier();
+	uint anotherParticle = (Gid + 10) % nParticles;
+	if(length(v0)<0.5f && gAlive[anotherParticle] == 0){
+		x0.w += 20;
+		gAlive[anotherParticle] = 1;
+		gAlive[Gid] = 1;
+		gPosLife[anotherParticle] = x0;
+		gVelMass[anotherParticle] = vec4(5,5,5, v0.w/2);
+		gVelMass[Gid] = vec4(5,5,5, v0.w/2);
 	}
 
 	
@@ -248,6 +247,8 @@ void main() {
 	// you can check if particle at i is dead and if particle at i+nParticle is alive, then swap them
 
 	barrier();
+	if(Gid>nParticles)
+		return;
 	gPosLife[Gid] = x0;
 	gVelMass[Gid] = v0;
 }
