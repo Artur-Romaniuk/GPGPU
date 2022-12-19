@@ -1,0 +1,53 @@
+#version 450
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushStruct {
+    mat4 mvp;
+    uvec4 nParts_w_h; // [0]=nParticles, [1]=width, [2]=height
+    vec4 dTs_rest; // timestep, old timestep, restDistance
+	vec4 ballPos;
+} p;
+
+layout(binding = 0) buffer PosArray {vec4 gPos[];};
+layout(binding = 7) buffer Normals {vec4 gNormals[];};
+
+///////////////////////////////////////////////////////////////////////////////
+// There is no need to change this function
+///////////////////////////////////////////////////////////////////////////////
+vec3 CalcTriangleNormal( vec3 p1, vec3 p2, vec3 p3) {
+    vec3 v1 = p2-p1;
+    vec3 v2 = p3-p1;
+    return cross( v1, v2);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// There is no need to change this kernel
+///////////////////////////////////////////////////////////////////////////////
+void main(){
+	uint width = p.nParts_w_h[1];
+    uint height = p.nParts_w_h[2];
+    uvec2 Gid = gl_GlobalInvocationID.xy;
+    uint particleID = Gid.x + Gid.y * width;
+    vec3 normal = vec3( 0.f );
+    
+    uint minX, maxX, minY, maxY, cntX, cntY;
+    minX = max( uint(0), uint(Gid.x-1));
+    maxX = min( uint(width-1), uint(Gid.x+1));
+    minY = max( uint(0), uint(Gid.y-1));
+    maxY = min( uint(height-1), uint(Gid.y+1));
+    
+    for( cntX = minX; cntX < maxX; ++cntX) {
+        for( cntY = minY; cntY < maxY; ++cntY) {
+            normal += normalize( CalcTriangleNormal(
+                gPos[(cntX+1)+width*(cntY )].xyz,
+                gPos[(cntX  )+width*(cntY )].xyz,
+                gPos[(cntX  )+width*(cntY+1)].xyz));
+            normal += normalize( CalcTriangleNormal(
+                gPos[(cntX+1)+width*(cntY+1)].xyz,
+                gPos[(cntX+1)+width*(cntY  )].xyz,
+                gPos[(cntX  )+width*(cntY+1)].xyz));
+        }
+    }
+    gNormals[particleID] = vec4(normalize( normal ), 0.f);
+}

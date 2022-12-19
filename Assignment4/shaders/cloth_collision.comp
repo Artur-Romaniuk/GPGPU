@@ -1,0 +1,46 @@
+#version 450
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+
+layout(push_constant) uniform PushStruct {
+  mat4 mvp;
+  uvec4 nParts_w_h; // [0]=nParticles, [1]=width, [2]=height
+	vec4 dTs_rest; // timestep, old timestep, restDistance
+	vec4 ballPos; // x,y,z, radius
+} p;
+
+layout(binding = 0) buffer PosArray {vec4 gPos[];};
+#define EPSILON 0.00001f
+
+///////////////////////////////////////////////////////////////////////////////
+// Input data:
+// width and height - the dimensions of the particle grid
+// d_pos            - the input positions
+// spherePos        - The position of the sphere (xyz)
+// sphereRad        - The radius of the sphere
+//
+// Output data:
+// d_pos            - The updated positions
+///////////////////////////////////////////////////////////////////////////////
+void main(){
+	uvec2 Gid = gl_GlobalInvocationID.xy;
+	uint width = p.nParts_w_h[1];
+	uint height = p.nParts_w_h[2];
+	uint particleID = Gid.x + Gid.y * width;
+	
+	if( Gid.x >= width || Gid.y >= height) return;
+	// this prevents the fixed points flag to be moved by the ball
+	if( particleID <= width-1 )
+		if( ((particleID % 7) == 0)  || 
+				particleID == 0 				 ||
+				particleID == width-1 )
+					return;
+	float ballRad = p.ballPos.w + 0.001f; //(to hide the edges peeking through the cloth, we add a little amount)
+	vec4 pos = gPos[particleID];
+	
+	// ADD YOUR CODE HERE
+	// compute distance to the sphere
+	// push back vertices that are inside it on the edge of it
+	// don't use normalize function, it created NaNs if you don't protect it
+	// you can use length(vec3) to get the appropriate length
+}

@@ -1,0 +1,307 @@
+#version 450
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+layout(constant_id=2) const int arraySizeX=20;
+layout(constant_id=3) const int arraySizeY=20;
+
+layout(push_constant) uniform PushStruct {
+  mat4 mvp;
+  uvec4 nParts_w_h; // [0]=nParticles, [1]=width, [2]=height
+	vec4 dTs_rest; // timestep, old timestep, total, restDistance
+	vec4 ballPos;	 // x,y,z, radius
+} p;
+
+layout(binding = 0) buffer PosArray {vec4 gPosIn[];}; // these two are the ping
+layout(binding = 1) buffer AuxPosArray {vec4 gPosOut[];}; // ponged buffers
+
+#define EPSILON 0.00001f
+#define DAMPING 0.02f
+
+// once you get it working, you can adjust the values here as you please
+#define WEIGHT_ORTHO	0.138f
+#define WEIGHT_DIAG		0.097f
+#define WEIGHT_ORTHO_2	0.069f
+#define WEIGHT_DIAG_2	0.048f
+
+#define ROOT_OF_2 1.4142135f
+#define DOUBLE_ROOT_OF_2 2.8284271f
+
+///////////////////////////////////////////////////////////////////////////////
+// Input data:
+// pos1 and pos2 - The positions of two particles
+// restDistance  - the distance between the given particles at rest
+//
+// Return data:
+// correction vector for particle 1
+///////////////////////////////////////////////////////////////////////////////	
+vec4 SatisfyConstraint(vec4 pos1,
+						 vec4 pos2,
+						 float restDistance){
+	vec4 toNeighbor = (pos2 - pos1);
+	float len = length(toNeighbor);
+	// this looks ugly, it's just to avoid NaNs
+	return (len <= EPSILON) ? vec4(0.f, 0.f, 0.f, 0.f) : toNeighbor - restDistance*toNeighbor / len;
+}
+
+#define HALOSIZE 2
+
+shared vec4 tile[arraySizeY][arraySizeX];
+///////////////////////////////////////////////////////////////////////////////
+// Input data:
+// width and height - the dimensions of the particle grid
+// restDistance     - the distance between two orthogonally neighboring particles at rest
+// gPosIn          - the input positions
+//
+// Output data:
+// gPosOut - new positions must be written here
+///////////////////////////////////////////////////////////////////////////////
+void main(){
+	
+	uint width = p.nParts_w_h[1];
+	uint height = p.nParts_w_h[2];
+	uvec2 GID = gl_GlobalInvocationID.xy;
+  	uvec2 Lid = gl_LocalInvocationID.xy;
+	uint TILE_X = arraySizeX - 4;
+  	uint TILE_Y = arraySizeY - 4;
+
+	float restDistance = p.dTs_rest[3]; // we actually assume restDistance_x = restDistance_y
+	uint particleID = GID.x + GID.y * width;
+
+	// ADD YOUR CODE HERE!
+	// Satisfy all the constraints (structural, shear, and bend).
+	// You can use weights defined at the beginning of this file.
+	// it is quite similar to the convolution: loading the halo, performing computation on it
+	// i.e. it will be a long list of if(condition on the position) ...
+
+  	// fill local memory with zeros
+  	if (Lid.x == 0){
+    	tile[Lid.y + 2][0] = vec4(0,0,0,0);
+    	tile[Lid.y + 2][1] = vec4(0,0,0,0);
+
+		if(Lid.y == 0){
+			tile[0][0] = vec4(0,0,0,0);
+			tile[0][1] = vec4(0,0,0,0);
+			tile[1][0] = vec4(0,0,0,0);
+			tile[1][1] = vec4(0,0,0,0);
+		}
+	}else if (Lid.x == (TILE_X - 1)){
+		tile[Lid.y + 2][TILE_X + 2] = vec4(0,0,0,0);
+		tile[Lid.y + 2][TILE_X + 3] = vec4(0,0,0,0);
+
+		if(Lid.y == 0){
+			tile[0][TILE_X + 2] = vec4(0,0,0,0);
+			tile[0][TILE_X + 3] = vec4(0,0,0,0);
+			tile[1][TILE_X + 2] = vec4(0,0,0,0);
+			tile[1][TILE_X + 3] = vec4(0,0,0,0);
+		}
+  	}
+
+	if (Lid.y == 0){
+		tile[0][Lid.x + 2] = vec4(0,0,0,0);
+		tile[1][Lid.x + 2] = vec4(0,0,0,0);
+
+		if(Lid.x == 0){
+			tile[TILE_Y + 2][0] = vec4(0,0,0,0);
+			tile[TILE_Y + 3][0] = vec4(0,0,0,0);
+			tile[TILE_Y + 2][1] = vec4(0,0,0,0);
+			tile[TILE_Y + 3][1] = vec4(0,0,0,0);
+		}
+	}else if (Lid.y == (TILE_Y - 1)){
+		tile[TILE_Y + 2][Lid.x + 2] = vec4(0,0,0,0);
+		tile[TILE_Y + 3][Lid.x + 2] = vec4(0,0,0,0);
+
+		if(Lid.x == 0){
+			tile[TILE_Y + 2][TILE_X + 2] = vec4(0,0,0,0);
+			tile[TILE_Y + 3][TILE_X + 2] = vec4(0,0,0,0);
+			tile[TILE_Y + 2][TILE_X + 3] = vec4(0,0,0,0);
+			tile[TILE_Y + 3][TILE_X + 3] = vec4(0,0,0,0);
+		}
+	}
+  	barrier();
+
+	// load the tile from global to local memory
+	if(GID.x < width && GID.y < height){
+		tile[Lid.y+2][Lid.x+2] = gPosIn[particleID];
+	}
+
+	// load the halo pixels:
+	if(Lid.x == 0 && GID.x > 1){
+		tile[Lid.y+2][0] = gPosIn[particleID - 2];
+		tile[Lid.y+2][1] = gPosIn[particleID - 1];
+	}else if(Lid.x == (TILE_X-1) && GID.x < width-2){
+		tile[Lid.y+1][TILE_X+2] = gPosIn[particleID + 1];
+		tile[Lid.y+1][TILE_X+3] = gPosIn[particleID + 2];
+	}
+
+	if(Lid.y == 0 && GID.y > 1){
+		tile[0][Lid.x+2] = gPosIn[width * (GID.y-2) + GID.x];
+		tile[1][Lid.x+2] = gPosIn[width * (GID.y-1) + GID.x];
+	}else if(Lid.y == (TILE_Y-1) && GID.y < height-2){
+		tile[TILE_Y+2][Lid.x+2] = gPosIn[width * (GID.y+1) + GID.x];
+		tile[TILE_Y+3][Lid.x+2] = gPosIn[width * (GID.y+2) + GID.x];
+	}
+	
+	if(Lid.x == 0 && Lid.y == 0 && GID.x > 1 && GID.y > 1){
+		tile[0][0] = gPosIn[width * (GID.y-2) + GID.x - 2];
+		tile[0][1] = gPosIn[width * (GID.y-2) + GID.x - 1];
+		tile[1][0] = gPosIn[width * (GID.y-1) + GID.x - 2];
+		tile[1][1] = gPosIn[width * (GID.y-1) + GID.x - 1];
+	}else if(Lid.x == (TILE_X-1) && Lid.y == 0 && GID.x < width-2 && GID.y > 1){
+		tile[0][TILE_X+2] = gPosIn[width * (GID.y-2) + GID.x + 1];
+		tile[0][TILE_X+3] = gPosIn[width * (GID.y-2) + GID.x + 2];
+		tile[1][TILE_X+2] = gPosIn[width * (GID.y-1) + GID.x + 1];
+		tile[1][TILE_X+3] = gPosIn[width * (GID.y-1) + GID.x + 2];
+	}else if(Lid.x == 0 && Lid.y == (TILE_Y-1) && GID.x > 1 && GID.y < height-2){
+		tile[TILE_Y+2][0] = gPosIn[width * (GID.y+1) + GID.x - 2];
+		tile[TILE_Y+2][1] = gPosIn[width * (GID.y+1) + GID.x - 1];
+		tile[TILE_Y+3][0] = gPosIn[width * (GID.y+2) + GID.x - 2];
+		tile[TILE_Y+3][1] = gPosIn[width * (GID.y+2) + GID.x - 1];
+	}else if(Lid.x == (TILE_X-1) && Lid.y == (TILE_Y-1) && GID.x < width-2 && GID.y < height-2){
+		tile[TILE_Y+2][TILE_X+2] = gPosIn[width * (GID.y+1) + GID.x + 1];
+		tile[TILE_Y+2][TILE_X+3] = gPosIn[width * (GID.y+1) + GID.x + 2];
+		tile[TILE_Y+3][TILE_X+2] = gPosIn[width * (GID.y+2) + GID.x + 1];
+		tile[TILE_Y+3][TILE_X+3] = gPosIn[width * (GID.y+2) + GID.x + 2];
+	}
+
+	barrier();
+
+	vec4 pos = tile[Lid.y+2][Lid.x+2];// TODO: Load thread's particle pos at the correct place
+
+	// Prevent some particles in the upper row from being moved, but do that only after loading the shared data!
+	if( particleID <= width-1 ){
+		if( ((particleID % 7) == 0)  || 
+				particleID ==0 					 ||
+				particleID ==width-1 )
+			{
+					gPosOut[particleID] = pos;
+					return;
+			}
+	}
+	// A ping-pong scheme is needed here, so read the values from gPosIn and store the results in gPosOut
+
+	// Hint: you should use the SatisfyConstraint helper function in the following manner:
+	// SatisfyConstraint(pos, neighborpos, restDistance) * WEIGHT_XXX
+	// you may also need the ROOT OF 2 or DOUBLE ROOT OF 2 for the rest distance
+	vec4 neighborPos = tile[Lid.y][Lid.x+1];
+	vec4 correctionVector = SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_ORTHO;
+	if(length(correctionVector) > restDistance/2){
+		pos.x += restDistance/2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y+1][Lid.x];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_ORTHO;
+	if(length(correctionVector) > restDistance/2){
+		pos.y += restDistance/2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y-1][Lid.x];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_ORTHO;
+	if(length(correctionVector) > restDistance/2){
+		pos.y -= restDistance/2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y][Lid.x-1];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_ORTHO;
+	if(length(correctionVector) > restDistance/2){
+		pos.x -= restDistance/2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y+1][Lid.x+1];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_DIAG;
+	if(length(correctionVector) > restDistance/2){
+		pos.y += restDistance/DOUBLE_ROOT_OF_2;
+		pos.x += restDistance/DOUBLE_ROOT_OF_2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y-1][Lid.x+1];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_DIAG;
+	if(length(correctionVector) > restDistance/2){
+		pos.y -= restDistance/DOUBLE_ROOT_OF_2;
+		pos.x += restDistance/DOUBLE_ROOT_OF_2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y-1][Lid.x-1];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_DIAG;
+	if(length(correctionVector) > restDistance/2){
+		pos.y -= restDistance/DOUBLE_ROOT_OF_2;
+		pos.x -= restDistance/DOUBLE_ROOT_OF_2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y+1][Lid.x-1];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_DIAG;
+	if(length(correctionVector) > restDistance/2){
+		pos.y += restDistance/DOUBLE_ROOT_OF_2;
+		pos.x -= restDistance/DOUBLE_ROOT_OF_2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y][Lid.x+2];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_ORTHO_2;
+	if(length(correctionVector) > restDistance/2){
+		pos.x += restDistance/2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y][Lid.x-2];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_ORTHO_2;
+	if(length(correctionVector) > restDistance/2){
+		pos.x += restDistance/2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y+2][Lid.x];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_ORTHO_2;
+	if(length(correctionVector) > restDistance/2){
+		pos.y += restDistance/2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y-2][Lid.x];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_ORTHO_2;
+	if(length(correctionVector) > restDistance/2){
+		pos.y += restDistance/2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y+2][Lid.x+2];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_DIAG_2;
+	if(length(correctionVector) > restDistance/2){
+		pos.y += restDistance/DOUBLE_ROOT_OF_2;
+		pos.x -= restDistance/DOUBLE_ROOT_OF_2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y-2][Lid.x+2];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_DIAG_2;
+	if(length(correctionVector) > restDistance/2){
+		pos.y += restDistance/DOUBLE_ROOT_OF_2;
+		pos.x -= restDistance/DOUBLE_ROOT_OF_2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y+2][Lid.x-2];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_DIAG_2;
+	if(length(correctionVector) > restDistance/2){
+		pos.y += restDistance/DOUBLE_ROOT_OF_2;
+		pos.x -= restDistance/DOUBLE_ROOT_OF_2;
+	}else{
+		pos += correctionVector;
+	}
+	neighborPos = tile[Lid.y-2][Lid.x-2];
+	SatisfyConstraint(pos, neighborPos, restDistance) * WEIGHT_DIAG_2;
+	if(length(correctionVector) > restDistance/2){
+		pos.y += restDistance/DOUBLE_ROOT_OF_2;
+		pos.x -= restDistance/DOUBLE_ROOT_OF_2;
+	}else{
+		pos += correctionVector;
+	}
+
+	gPosOut[particleID] = pos;
+}

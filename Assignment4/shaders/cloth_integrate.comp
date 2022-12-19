@@ -1,0 +1,75 @@
+#version 450
+
+layout(local_size_x_id = 0, local_size_y_id = 1, local_size_z = 1) in;
+
+#define DAMPING 0.02f
+#define EPSILON 0.00001f
+
+const vec4 G_ACCEL = vec4(0.f,0.f, -9.81f, .0f);
+const vec4 WIND_ACCEL = vec4(2.f,3.f, 0.f, .0f);
+layout(push_constant) uniform PushStruct {
+  mat4 mvp;
+  uvec4 nParts_w_h; // [0]=nParticles, [1]=width, [2]=height
+	vec4 dTs_rest; // timestep, old timestep, total time, restDistance
+	vec4 ballPos;
+} p;
+
+layout(binding = 0) buffer PosArray {vec4 gPos[];};
+layout(binding = 2) buffer OldPos {vec4 gOldPos[];};
+
+///////////////////////////////////////////////////////////////////////////////
+// The integration kernel
+// Input data:
+// width and height - the dimensions of the particle grid
+// gPos - the most recent position of the cloth particle while...
+// gOldPos - ...contains the position from the previous iteration.
+// elapsedTime      - contains the elapsed time since the previous invocation of the kernel,
+// prevElapsedTime  - contains the previous time step.
+// simulationTime   - contains the time elapsed since the start of the simulation (useful for wind)
+// All time values are given in seconds.
+//
+// Output data:
+// gOldPos - Input data from gPos must be copied to this array
+// gPos     - Updated positions
+///////////////////////////////////////////////////////////////////////////////
+void main(){
+  uvec2 Gid = gl_GlobalInvocationID.xy;
+  uint width = p.nParts_w_h[1];
+  uint height = p.nParts_w_h[2];
+	// Make sure the work-item does not map outside the cloth
+  if(Gid.x >= width || Gid.y >= height)
+		return;
+
+	uint particleID = Gid.x + Gid.y * width;
+	// keep every 8th particle of the first row attached to the bar (and 1st and last)
+	if( particleID <= width-1 )
+		if( ((particleID % 7) == 0)  || 
+				particleID == 0 				 ||
+				particleID == width-1 )
+					return;
+	
+	float currentTime = p.dTs_rest[0];
+	float previousTime = p.dTs_rest[1];
+	float totalTime = p.dTs_rest[2];
+	
+	vec4 posPrevious = gOldPos[particleID];
+	vec4 pos = gPos[particleID];
+
+		// ADD YOUR CODE HERE!
+
+		// Read the positions
+		// Compute the new one position using the Verlet position integration, taking into account gravity and wind
+		// - this involves computing the velocity and acceleration
+		// Move the value from gPos into gOldPos and store the new one in gPos
+
+	vec4 prevVelocity = (pos - posPrevious)/currentTime;
+	vec4 a =  G_ACCEL + sin(totalTime) * WIND_ACCEL;
+	vec4 newPos = pos + prevVelocity * currentTime + a*(currentTime*currentTime*0.5);
+	gOldPos[particleID] = pos;
+	gPos[particleID] = newPos;
+	
+		// vec4 a = ...
+		// pos += v dt + a dt dt
+		// ...
+
+}
