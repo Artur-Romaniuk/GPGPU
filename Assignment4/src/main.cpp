@@ -92,7 +92,7 @@ void Task1()
     render.camera.phi = glm::pi<float>();
     render.camera.theta = 0.4 * glm::pi<float>();
     A4Task1 task1(app, render, 400000, "../Assets/cubeNormal.obj");
-    ParticlesA4Task1Solution sol1(app, task1.data, 192, 192);
+    ParticlesA4Task1Solution sol1(app, task1.data, 194, 194);
     task1.prepare(sol1);
 
     renderdoc::endCapture();

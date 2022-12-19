@@ -111,7 +111,7 @@ bool CheckCollisions(	vec4 x0, vec4 x1,
 
 	// The caching implementation should roughly follow this scheme:
 	uint nProcessed = 0;  
-	const uint nThreads = gl_WorkGroupSize.x;
+	const uint nThreads = gl_WorkGroupSize.x - gl_WorkGroupSize.x%3;
 	bool intersected = false;
 
 	while (nProcessed < nTriangles) {
@@ -122,7 +122,7 @@ bool CheckCollisions(	vec4 x0, vec4 x1,
 		}
 
 		if(gl_LocalInvocationIndex < k*3){
-			triangleCache[gl_LocalInvocationIndex] = gTriangleSoup[nProcessed + gl_LocalInvocationIndex];
+			triangleCache[gl_LocalInvocationIndex] = gTriangleSoup[nProcessed * 3 + gl_LocalInvocationIndex];
 		}
 		barrier();
 
@@ -173,65 +173,49 @@ void main() {
 	const uint Gid = gl_GlobalInvocationID.x;
 	const uint Lid = gl_LocalInvocationID.x;
 
-	vec4 x0 = gPosLife[Gid];
-	vec4 v0 = gVelMass[Gid];
+	vec4 x0 = vec4(0,0,0,0);
+	vec4 v0 = vec4(0,0,0,0);
+	if(Gid<=nParticles){
+		x0 = gPosLife[Gid];
+		v0 = gVelMass[Gid];
+	}
 
-	//vec4 gAccel = vec4(1.f, 0.f, 0.f, 0.f);
-	vec4 gAccel = vec4(0.f, 0.f, -9.81f, 0.f);
+	const vec4 gAccel = vec4(0.f, 0.f, -9.81f, 0.f);
+	vec4 F0 = texture(gForceFieldSampler, x0.xyz);
 
-	// Verlet Velocity Integration
-
-	float mass = v0.w;
-	float life = x0.w;
-
-	vec3 lookUp = x0.xyz;
-	
-	// texture is a built in function
-	// it communicates to the driver that we want to sample from
-	// the texture. This allows for interpolation
-	vec4 F0 = texture(gForceFieldSampler, lookUp);
-	//vec4 F0 = vec4(0,0,0,0);
-
-	// ADD YOUR CODE HERE (INSTEAD OF THE LINES BELOW) 
-	// to finish the implementation of the Verlet Velocity Integration
-	// x0.y = 0.2f * sin(x0.w * 5.f) + 0.3f;
-	// x0.w -= p.dT;
-	// gPosLife[Gid] = x0;
-
-
-	vec4 x1 = x0 + v0 * p.dT + (0.5f * gAccel * p.dT * p.dT);
-	vec4 newAccel = gAccel + 0.5f * (F0 / mass); 
-	vec4 v1 = v0 + 0.5F * (gAccel + newAccel) * p.dT;
+	vec4 x1;
+	x1.xyz = x0.xyz + v0.xyz * p.dT + (0.5f * gAccel.xyz * p.dT * p.dT);
+	x1.w = x0.w - p.dT;
+	vec4 newAccel = gAccel + 0.5f * (F0 / v0.w); 
+	vec4 v1;
+	v1.xyz = v0.xyz + 0.5F * (gAccel.xyz + newAccel.xyz) * p.dT;
+	v1.w = v0.w;
 
 	float isectT;
 	vec4 isectN;
-
-	barrier();
-	if(CheckCollisions(x0, x1, nTriangles, isectT, isectN) == true){
-		v1 = v1 - 2*dot3(v1, isectN)*isectN;
-		v1 *= 0.8;
-		x1 = x0 + (x1 - x0) * (isectT * 0.9);
+	if(CheckCollisions(x0, x1, nTriangles, isectT, isectN)){
+		v1.xyz = 0.8f * (v1.xyz - 2*dot3(v1, isectN)*isectN.xyz);
+		x1.xyz = x0.xyz + (x1.xyz - x0.xyz) * isectT + isectN.xyz * EPSILON;
 	}
-	barrier();
 
-	x0.w -= p.dT;
-	if(x0.w < 0){
+	barrier();
+	if(x1.w < 0 && Gid<=nParticles){
 		gAlive[Gid] = 0;
-	}else{
-		x0 = x1;
-		v0 = v1;
-	}
+	}else if(Gid<= nParticles){
+		gPosLife[Gid] = x1;
+		gVelMass[Gid] = v1;
 
+		uint anotherParticle = (Gid + 10) % nParticles;
+		if(length(v0.xyz)<1.f && gAlive[anotherParticle] == 0 && Gid<=nParticles){
+			gAlive[anotherParticle] = 1;
+			gAlive[Gid] = 1;
+			gPosLife[anotherParticle].xyz = x0.xyz;
+			gPosLife[anotherParticle].w = 20;
+			gVelMass[anotherParticle].xyz = 2*v0.xyz;
+			gVelMass[anotherParticle].w = v0.w/2;
+			gPosLife[Gid].w += 20;
+		}
 
-	barrier();
-	uint anotherParticle = (Gid + 10) % nParticles;
-	if(length(v0)<0.5f && gAlive[anotherParticle] == 0){
-		x0.w += 20;
-		gAlive[anotherParticle] = 1;
-		gAlive[Gid] = 1;
-		gPosLife[anotherParticle] = x0;
-		gVelMass[anotherParticle] = vec4(5,5,5, v0.w/2);
-		gVelMass[Gid] = vec4(5,5,5, v0.w/2);
 	}
 
 	
@@ -246,9 +230,4 @@ void main() {
 	
 	// you can check if particle at i is dead and if particle at i+nParticle is alive, then swap them
 
-	barrier();
-	if(Gid>nParticles)
-		return;
-	gPosLife[Gid] = x0;
-	gVelMass[Gid] = v0;
 }

@@ -11,8 +11,8 @@ T ceilDiv(T x, V y)
 ParticlesA4Task1Solution::ParticlesA4Task1Solution(AppResources &app, A4Task1Data &datad, uint32_t workGroupSize_x, uint32_t triangleCacheSize) : 
     app(app), data(datad), workGroupSize_x(workGroupSize_x), triangleCacheSize(triangleCacheSize)
 {
-    if (triangleCacheSize%3 != 0)
-        throw std::runtime_error("error: trangleCacheSize must be divisible by 3 or 0");
+    // if (triangleCacheSize%3 != 0)
+    //     throw std::runtime_error("error: trangleCacheSize must be divisible by 3 or 0");
     
     // ########## Setup Integrate ############ 
     app.device.destroyShaderModule(particleShader);
